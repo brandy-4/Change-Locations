@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Change Locations</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100vh; }
+    .header { background: #1a7a4a; color: white; padding: 1rem; text-align: center; }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+    .container { max-width: 480px; margin: 0 auto; padding: 1rem; }
+    .card { background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .auth-btn { width: 100%; padding: 12px; background: white; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .scan-btn { width: 100%; padding: 20px; background: #1a7a4a; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 1rem; }
+    .scan-btn.scanning { background: #c0392b; }
+    #camera-container { display: none; border-radius: 12px; overflow: hidden; position: relative; background: #000; margin-bottom: 1rem; }
+    #preview { width: 100%; display: block; max-height: 280px; object-fit: cover; }
+    canvas#snap { display: none; }
+    .scan-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .scan-box { width: 260px; height: 80px; border: 2px solid #2ecc71; border-radius: 6px; box-shadow: 0 0 0 2000px rgba(0,0,0,0.4); }
+    .status { font-size: 14px; text-align: center; padding: 10px; min-height: 36px; border-radius: 8px; margin-bottom: 1rem; }
+    .status.success { color: #1a7a4a; background: #e8f5ee; }
+    .status.error { color: #c0392b; background: #fdecea; }
+    .status.loading { color: #666; background: #f0f0f0; }
+    .status.ready { color: #555; background: #f9f9f9; }
+    .user-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .user-dot { width: 8px; height: 8px; border-radius: 50%; background: #1a7a4a; margin-right: 6px; display: inline-block; }
+    .user-name { font-size: 13px; color: #555; }
+    .signout-btn { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; }
+    .log-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .log-title { font-size: 13px; color: #666; font-weight: 500; }
+    .log-count { font-size: 12px; color: #999; }
+    .log-item { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .log-tag { font-family: monospace; font-size: 12px; color: #444; flex: 1; word-break: break-all; margin-right: 8px; }
+    .log-date { font-size: 11px; color: #999; white-space: nowrap; }
+    #auth-section { text-align: center; }
+    #auth-section .icon { font-size: 48px; margin-bottom: 1rem; }
+    #auth-section h2 { font-size: 18px; margin-bottom: 6px; }
+    #auth-section p { font-size: 13px; color: #888; margin-bottom: 1.25rem; }
+    .note { font-size: 11px; color: #aaa; text-align: center; margin-top: 0.5rem; }
+    .counter { font-size: 48px; font-weight: 700; color: #1a7a4a; text-align: center; padding: 1rem 0; }
+    .counter-label { font-size: 12px; color: #999; text-align: center; margin-top: -0.5rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h1>Change Locations</h1>
+  <p>Metrc Package Scanner</p>
+</div>
+<div class="container">
+
+  <div id="auth-section" class="card">
+    <div class="icon">📦</div>
+    <h2>Change Locations</h2>
+    <p>Sign in with Google to sync scans to your sheet</p>
+    <button class="auth-btn" onclick="handleSignIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/></svg>
+      Sign in with Google
+    </button>
+    <p class="note">Only requests permission to edit your designated Sheet</p>
+  </div>
+
+  <div id="scanner-section" style="display:none;">
+    <div class="user-bar">
+      <span class="user-name"><span class="user-dot"></span><span id="user-name"></span></span>
+      <button class="signout-btn" onclick="handleSignOut()">Sign out</button>
+    </div>
+
+    <div class="counter" id="scan-counter">0</div>
+    <div class="counter-label">scans this session</div>
+
+    <div id="status-msg" class="status ready">Ready to scan</div>
+
+    <button class="scan-btn" id="scan-btn" onclick="toggleScan()">📷 Start Scanning</button>
+
+    <div id="camera-container">
+      <video id="preview" autoplay playsinline muted></video>
+      <canvas id="snap"></canvas>
+      <div class="scan-overlay"><div class="scan-box"></div></div>
+    </div>
+
+    <div id="log-section" class="card" style="display:none;">
+      <div class="log-header">
+        <span class="log-title">This session</span>
+        <span class="log-count" id="log-count"></span>
+      </div>
+      <div id="log-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script>
+const CLIENT_ID = '40482637178-9mmeudisioeop6at524e2kv7njvq29lr.apps.googleusercontent.com';
+const SHEET_ID = '1EB_utVZT0YjSySbT5TdbCCZ1-07PUho_j27BrS8vzUo';
+const SHEET_GID = '153204548';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
+
+let accessToken = null;
+let sessionLog = [];
+let scanning = false;
+let processing = false;
+let sheetName = null;
+let stream = null;
+let scanInterval = null;
+let barcodeDetector = null;
+
+function getToday() {
+  const d = new Date();
+  return (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+}
+
+function handleSignIn() {
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: window.location.origin + window.location.pathname,
+    response_type: 'token',
+    scope: SCOPES,
+    prompt: 'select_account'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+function checkToken() {
+  const hash = window.location.hash;
+  if (hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    accessToken = params.get('access_token');
+    history.replaceState(null, '', window.location.pathname);
+    fetchUserName();
+  }
+}
+
+async function fetchUserName() {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const data = await res.json();
+    showScanner(data.email || 'Signed in');
+  } catch { showScanner('Signed in'); }
+}
+
+async function getSheetNameOnce() {
+  if (sheetName) return sheetName;
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`,
+    { headers: { Authorization: 'Bearer ' + accessToken } }
+  );
+  const data = await res.json();
+  const sheet = data.sheets.find(s => String(s.properties.sheetId) === SHEET_GID);
+  sheetName = sheet ? sheet.properties.title : 'Sheet1';
+  return sheetName;
+}
+
+function showScanner(name) {
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('scanner-section').style.display = 'block';
+  document.getElementById('user-name').textContent = name;
+}
+
+function handleSignOut() {
+  accessToken = null;
+  stopScan();
+  sessionLog = [];
+  sheetName = null;
+  document.getElementById('auth-section').style.display = 'block';
+  document.getElementById('scanner-section').style.display = 'none';
+  document.getElementById('log-section').style.display = 'none';
+  document.getElementById('scan-counter').textContent = '0';
+}
+
+function toggleScan() {
+  if (scanning) { stopScan(); } else { startScan(); }
+}
+
+async function startScan() {
+  setStatus('Starting camera...', 'loading');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('preview');
+    video.srcObject = stream;
+    await video.play();
+
+    document.getElementById('camera-container').style.display = 'block';
+    const btn = document.getElementById('scan-btn');
+    btn.textContent = '⏹ Stop Scanning';
+    btn.classList.add('scanning');
+    scanning = true;
+    setStatus('Point camera at a barcode...', 'ready');
+
+    // Try native BarcodeDetector API first (Android Chrome, some iOS 17+)
+    if ('BarcodeDetector' in window) {
+      barcodeDetector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'data_matrix'] });
+      scanInterval = setInterval(scanFrame, 300);
+    } else {
+      // Fallback: use canvas + ZXing via CDN
+      loadZXingFallback();
+    }
+  } catch(e) {
+    setStatus('Camera error: ' + e.message, 'error');
+  }
+}
+
+async function scanFrame() {
+  if (!scanning || processing) return;
+  const video = document.getElementById('preview');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+  try {
+    const results = await barcodeDetector.detect(video);
+    if (results.length > 0) {
+      const tag = results[0].rawValue;
+      if (tag) {
+        processing = true;
+        setStatus('Saving...', 'loading');
+        await saveRow(tag);
+        setTimeout(() => { processing = false; }, 1500);
+      }
+    }
+  } catch(e) {}
+}
+
+function loadZXingFallback() {
+  if (typeof ZXing !== 'undefined') {
+    startZXing();
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = 'https://unpkg.com/@zxing/library@0.19.3/umd/index.min.js';
+  script.onload = startZXing;
+  script.onerror = () => setStatus('Scanner failed to load. Try refreshing.', 'error');
+  document.head.appendChild(script);
+}
+
+function startZXing() {
+  if (!scanning) return;
+  const video = document.getElementById('preview');
+  const canvas = document.getElementById('snap');
+  const ctx = canvas.getContext('2d');
+  const hints = new Map();
+  const formats = [
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.CODE_39,
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.QR_CODE,
+    ZXing.BarcodeFormat.DATA_MATRIX
+  ];
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+  const reader = new ZXing.MultiFormatReader();
+  reader.setHints(hints);
+
+  scanInterval = setInterval(() => {
+    if (!scanning || processing) return;
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    try {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const luminance = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+      const binary = new ZXing.HybridBinarizer(luminance);
+      const bitmap = new ZXing.BinaryBitmap(binary);
+      const result = reader.decode(bitmap);
+      if (result && !processing) {
+        processing = true;
+        setStatus('Saving...', 'loading');
+        saveRow(result.getText()).then(() => {
+          setTimeout(() => { processing = false; }, 1500);
+        });
+      }
+    } catch(e) {}
+  }, 400);
+}
+
+function stopScan() {
+  scanning = false;
+  processing = false;
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  document.getElementById('camera-container').style.display = 'none';
+  const btn = document.getElementById('scan-btn');
+  btn.textContent = '📷 Start Scanning';
+  btn.classList.remove('scanning');
+  setStatus('Ready to scan', 'ready');
+}
+
+async function saveRow(tag) {
+  const date = getToday();
+  try {
+    const name = await getSheetNameOnce();
+    const range = encodeURIComponent(name + '!A:D');
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [[tag, '', date, '']] })
+      }
+    );
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Unknown error'); }
+    addToLog(tag, date);
+    setStatus('✓ ' + tag.slice(-10), 'success');
+  } catch(e) {
+    setStatus('Error: ' + e.message, 'error');
+  }
+}
+
+function addToLog(tag, date) {
+  sessionLog.unshift({ tag, date });
+  document.getElementById('scan-counter').textContent = sessionLog.length;
+  const logSection = document.getElementById('log-section');
+  logSection.style.display = 'block';
+  document.getElementById('log-count').textContent = sessionLog.length + ' scan' + (sessionLog.length !== 1 ? 's' : '');
+  document.getElementById('log-list').innerHTML = sessionLog.slice(0, 20).map(r => `
+    <div class="log-item">
+      <span class="log-tag">${r.tag}</span>
+      <span class="log-date">${r.date}</span>
+    </div>
+  `).join('');
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status ' + (type || 'ready');
+}
+
+checkToken();
+</script>
+</body>
+</html>
