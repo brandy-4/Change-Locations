@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Change Locations</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100vh; }
+    .header { background: #1a7a4a; color: white; padding: 1rem; text-align: center; }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+    .container { max-width: 480px; margin: 0 auto; padding: 1rem; }
+    .card { background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .auth-btn { width: 100%; padding: 12px; background: white; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .green-btn { width: 100%; padding: 16px; background: #1a7a4a; color: white; border: none; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; margin-bottom: 1rem; }
+    .green-btn:active { background: #155f39; }
+    .red-btn { width: 100%; padding: 16px; background: #c0392b; color: white; border: none; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; margin-bottom: 1rem; }
+    .red-btn:active { background: #a93226; }
+    .gray-btn { width: 100%; padding: 12px; background: #f0f0f0; color: #444; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; margin-bottom: 0.75rem; }
+    .gray-btn:active { background: #e0e0e0; }
+    .tab-selector { width: 100%; padding: 12px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 15px; background: white; margin-bottom: 1rem; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+    .manual-input { width: 100%; padding: 12px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 15px; font-family: monospace; margin-bottom: 0.75rem; }
+    .manual-input:focus { outline: none; border-color: #1a7a4a; }
+    #camera-wrap { display: none; margin-bottom: 1rem; }
+    #camera-box { position: relative; border-radius: 12px; overflow: hidden; background: #000; cursor: pointer; }
+    #preview { width: 100%; display: block; max-height: 300px; object-fit: cover; }
+    .scan-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .scan-box { width: 280px; height: 100px; border: 2px solid #2ecc71; border-radius: 6px; box-shadow: 0 0 0 2000px rgba(0,0,0,0.45); }
+    .tap-hint { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; color: white; font-size: 13px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.8); pointer-events: none; }
+    .flash { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; border-radius: 12px; }
+    .flash.on { opacity: 0.7; }
+    canvas { display: none; }
+    .status { font-size: 15px; text-align: center; padding: 12px; min-height: 44px; border-radius: 10px; margin-bottom: 1rem; font-weight: 500; }
+    .status.success { color: #1a7a4a; background: #e8f5ee; }
+    .status.duplicate { color: #e67e22; background: #fef5e7; }
+    .status.error { color: #c0392b; background: #fdecea; }
+    .status.loading { color: #666; background: #f0f0f0; }
+    .status.ready { color: #555; background: #f9f9f9; }
+    .user-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .user-dot { width: 8px; height: 8px; border-radius: 50%; background: #1a7a4a; margin-right: 6px; display: inline-block; }
+    .user-name { font-size: 13px; color: #555; }
+    .signout-btn { font-size: 12px; color: #888; background: none; border: none; cursor: pointer; }
+    .counter { font-size: 52px; font-weight: 700; color: #1a7a4a; text-align: center; padding: 0.5rem 0; }
+    .counter-label { font-size: 12px; color: #999; text-align: center; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tab-counts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+    .tab-count-card { background: white; border-radius: 10px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
+    .tab-count-card.active { border: 2px solid #1a7a4a; }
+    .tab-count-name { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tab-count-num { font-size: 24px; font-weight: 700; color: #1a7a4a; }
+    .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+    .action-btn { padding: 12px; background: #f0f0f0; color: #444; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; text-align: center; }
+    .action-btn:active { background: #e0e0e0; }
+    .action-btn.danger { color: #c0392b; border-color: #f5c6c6; background: #fef9f9; }
+    .log-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .log-title { font-size: 13px; color: #666; font-weight: 500; }
+    .log-count { font-size: 12px; color: #999; }
+    .log-item { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .log-tag { font-family: monospace; font-size: 12px; color: #333; flex: 1; word-break: break-all; }
+    .log-meta { font-size: 11px; color: #999; text-align: right; white-space: nowrap; }
+    #auth-section { text-align: center; }
+    #auth-section .icon { font-size: 48px; margin-bottom: 1rem; }
+    #auth-section h2 { font-size: 18px; margin-bottom: 6px; }
+    #auth-section p { font-size: 13px; color: #888; margin-bottom: 1.25rem; }
+    .note { font-size: 11px; color: #aaa; text-align: center; margin-top: 0.5rem; }
+    .section-label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 500; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h1>Metrc Scanner</h1>
+  <p>T3+ Package Tag Scanner</p>
+</div>
+<div class="container">
+
+  <div id="auth-section" class="card">
+    <div class="icon">📦</div>
+    <h2>Metrc Scanner</h2>
+    <p>Sign in with Google to sync scans to your sheet</p>
+    <button class="auth-btn" onclick="handleSignIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/></svg>
+      Sign in with Google
+    </button>
+    <p class="note">Only requests permission to edit your designated Sheet</p>
+  </div>
+
+  <div id="scanner-section" style="display:none;">
+    <div class="user-bar">
+      <span class="user-name"><span class="user-dot"></span><span id="user-name"></span></span>
+      <button class="signout-btn" onclick="handleSignOut()">Sign out</button>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Scanning into</div>
+      <select class="tab-selector" id="tab-selector" onchange="onTabChange()">
+        <option value="Change Location|153204548">Change Location</option>
+        <option value="New Packages|0">New Packages</option>
+        <option value="Adjust|1">Adjust</option>
+        <option value="Testing|2">Testing</option>
+      </select>
+    </div>
+
+    <div class="tab-counts" id="tab-counts"></div>
+
+    <div class="counter" id="scan-counter">0</div>
+    <div class="counter-label">scans this session</div>
+
+    <div id="status-msg" class="status ready">Tap "Open Camera" to begin</div>
+
+    <button class="green-btn" id="open-btn" onclick="openCamera()">📷 Open Camera</button>
+
+    <div id="camera-wrap">
+      <div id="camera-box" onclick="captureAndScan()">
+        <video id="preview" autoplay playsinline muted></video>
+        <div class="scan-overlay"><div class="scan-box"></div></div>
+        <div class="tap-hint">Tap to scan barcode</div>
+        <div class="flash" id="flash"></div>
+      </div>
+      <canvas id="snap"></canvas>
+      <button class="red-btn" style="margin-top:10px;" onclick="closeCamera()">✕ Close Camera</button>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Manual Entry</div>
+      <input type="text" class="manual-input" id="manual-input" placeholder="Type or paste tag number..." autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button class="green-btn" style="margin-bottom:0;" onclick="submitManual()">Add Tag Manually</button>
+    </div>
+
+    <div class="action-row">
+      <button class="action-btn danger" onclick="undoLast()">↩ Undo Last</button>
+      <button class="action-btn danger" onclick="clearSession()">🗑 Clear Session</button>
+    </div>
+
+    <div id="log-section" class="card" style="display:none;">
+      <div class="log-header">
+        <span class="log-title">This session</span>
+        <span class="log-count" id="log-count"></span>
+      </div>
+      <div id="log-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/@zxing/library@0.19.3/umd/index.min.js"></script>
+<script>
+const CLIENT_ID = '40482637178-9mmeudisioeop6at524e2kv7njvq29lr.apps.googleusercontent.com';
+const SHEET_ID = '1EB_utVZT0YjSySbT5TdbCCZ1-07PUho_j27BrS8vzUo';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
+
+const TABS = [
+  { name: 'Change Location', gid: '153204548' },
+  { name: 'New Packages', gid: null },
+  { name: 'Adjust', gid: null },
+  { name: 'Testing', gid: null }
+];
+
+let accessToken = null;
+let sessionLog = [];
+let scannedTags = new Set();
+let tabCounts = {};
+let stream = null;
+let sheetNames = {};
+let processing = false;
+let wakeLock = null;
+let currentTab = TABS[0];
+let lastSavedRow = null;
+
+TABS.forEach(t => tabCounts[t.name] = 0);
+
+function getToday() {
+  const d = new Date();
+  return (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+}
+
+function beep(success) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = success ? 1200 : 400;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (success ? 0.12 : 0.25));
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + (success ? 0.12 : 0.25));
+  } catch(e) {}
+  if (navigator.vibrate) navigator.vibrate(success ? 60 : [60,60,60]);
+}
+
+async function acquireWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) {}
+}
+
+function handleSignIn() {
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: window.location.origin + window.location.pathname,
+    response_type: 'token',
+    scope: SCOPES,
+    prompt: 'select_account'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+function checkToken() {
+  const hash = window.location.hash;
+  if (hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    accessToken = params.get('access_token');
+    history.replaceState(null, '', window.location.pathname);
+    fetchUserName();
+  }
+}
+
+async function fetchUserName() {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const data = await res.json();
+    showScanner(data.email || 'Signed in');
+  } catch { showScanner('Signed in'); }
+}
+
+async function fetchAllSheetNames() {
+  try {
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`,
+      { headers: { Authorization: 'Bearer ' + accessToken } }
+    );
+    const data = await res.json();
+    data.sheets.forEach(s => {
+      sheetNames[s.properties.title] = s.properties.title;
+    });
+    // Update tab GIDs from actual sheet data
+    const sel = document.getElementById('tab-selector');
+    sel.innerHTML = '';
+    data.sheets.forEach(s => {
+      const name = s.properties.title;
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      sel.appendChild(opt);
+      if (!tabCounts[name]) tabCounts[name] = 0;
+    });
+    currentTab = { name: data.sheets[0].properties.title };
+    updateTabCounts();
+  } catch(e) {}
+}
+
+function showScanner(name) {
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('scanner-section').style.display = 'block';
+  document.getElementById('user-name').textContent = name;
+  fetchAllSheetNames();
+  acquireWakeLock();
+}
+
+function handleSignOut() {
+  accessToken = null;
+  closeCamera();
+  if (wakeLock) { try { wakeLock.release(); } catch(e){} wakeLock = null; }
+  sessionLog = [];
+  scannedTags = new Set();
+  TABS.forEach(t => tabCounts[t.name] = 0);
+  lastSavedRow = null;
+  document.getElementById('auth-section').style.display = 'block';
+  document.getElementById('scanner-section').style.display = 'none';
+  document.getElementById('log-section').style.display = 'none';
+  document.getElementById('scan-counter').textContent = '0';
+}
+
+function onTabChange() {
+  const sel = document.getElementById('tab-selector');
+  currentTab = { name: sel.value };
+  updateTabCounts();
+  scannedTags = new Set();
+  setStatus('Tab changed — duplicates reset', 'ready');
+}
+
+function updateTabCounts() {
+  const container = document.getElementById('tab-counts');
+  const keys = Object.keys(tabCounts);
+  container.innerHTML = keys.map(name => `
+    <div class="tab-count-card ${name === currentTab.name ? 'active' : ''}">
+      <div class="tab-count-name">${name}</div>
+      <div class="tab-count-num">${tabCounts[name] || 0}</div>
+    </div>
+  `).join('');
+}
+
+async function openCamera() {
+  setStatus('Starting camera...', 'loading');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+    });
+    const video = document.getElementById('preview');
+    video.srcObject = stream;
+    await video.play();
+    document.getElementById('camera-wrap').style.display = 'block';
+    document.getElementById('open-btn').style.display = 'none';
+    setStatus('Point at barcode, then tap the image', 'ready');
+  } catch(e) {
+    setStatus('Camera error: ' + e.message, 'error');
+  }
+}
+
+function closeCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  document.getElementById('camera-wrap').style.display = 'none';
+  document.getElementById('open-btn').style.display = 'block';
+  setStatus('Tap "Open Camera" to begin', 'ready');
+}
+
+async function captureAndScan() {
+  if (processing) return;
+  processing = true;
+
+  const flash = document.getElementById('flash');
+  flash.classList.add('on');
+  setTimeout(() => flash.classList.remove('on'), 150);
+  setStatus('Scanning...', 'loading');
+
+  const video = document.getElementById('preview');
+  const canvas = document.getElementById('snap');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  let tag = null;
+
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({ formats: ['code_128','code_39','ean_13','ean_8','upc_a','upc_e','qr_code','data_matrix','pdf417'] });
+      const results = await detector.detect(canvas);
+      if (results.length > 0) tag = results[0].rawValue;
+    } catch(e) {}
+  }
+
+  if (!tag && typeof ZXing !== 'undefined') {
+    try {
+      const luminance = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+      const binary = new ZXing.HybridBinarizer(luminance);
+      const bitmap = new ZXing.BinaryBitmap(binary);
+      const reader = new ZXing.MultiFormatReader();
+      tag = reader.decode(bitmap).getText();
+    } catch(e) {}
+  }
+
+  if (!tag) {
+    setStatus('No barcode found — try again', 'error');
+    beep(false);
+    processing = false;
+    return;
+  }
+
+  if (scannedTags.has(tag)) {
+    setStatus('⚠️ Already scanned: ' + tag, 'duplicate');
+    beep(false);
+    processing = false;
+    return;
+  }
+
+  await saveRow(tag);
+  processing = false;
+}
+
+async function submitManual() {
+  const input = document.getElementById('manual-input');
+  const tag = input.value.trim();
+  if (!tag) { setStatus('Please enter a tag number', 'error'); return; }
+  if (scannedTags.has(tag)) { setStatus('⚠️ Already scanned: ' + tag, 'duplicate'); beep(false); return; }
+  input.value = '';
+  await saveRow(tag);
+}
+
+async function saveRow(tag) {
+  try {
+    const sheetName = currentTab.name;
+    const range = encodeURIComponent(sheetName + '!A:A');
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS&includeValuesInResponse=true`,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [[tag]] })
+      }
+    );
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Unknown error'); }
+    const data = await res.json();
+    // Extract the row number that was written
+    const updatedRange = data.updates?.updatedRange || '';
+    const match = updatedRange.match(/(\d+)$/);
+    lastSavedRow = match ? { row: parseInt(match[1]), sheetName } : null;
+
+    scannedTags.add(tag);
+    tabCounts[sheetName] = (tabCounts[sheetName] || 0) + 1;
+    sessionLog.unshift({ tag, sheetName, time: new Date().toLocaleTimeString() });
+    updateTabCounts();
+    updateLog();
+    beep(true);
+    setStatus('✓ ' + tag, 'success');
+  } catch(e) {
+    setStatus('Error: ' + e.message, 'error');
+    beep(false);
+  }
+}
+
+async function undoLast() {
+  if (!lastSavedRow) { setStatus('Nothing to undo', 'error'); return; }
+  try {
+    const { row, sheetName } = lastSavedRow;
+    const range = encodeURIComponent(sheetName + '!A' + row + ':Z' + row);
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:clear`,
+      { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken } }
+    );
+    const undoneTag = sessionLog[0]?.tag;
+    if (undoneTag) scannedTags.delete(undoneTag);
+    sessionLog.shift();
+    tabCounts[sheetName] = Math.max(0, (tabCounts[sheetName] || 1) - 1);
+    lastSavedRow = null;
+    updateTabCounts();
+    updateLog();
+    beep(false);
+    setStatus('↩ Undone: ' + (undoneTag || 'last scan'), 'ready');
+  } catch(e) {
+    setStatus('Undo error: ' + e.message, 'error');
+  }
+}
+
+function clearSession() {
+  if (!confirm('Clear all session data? This won\'t delete anything from the sheet.')) return;
+  sessionLog = [];
+  scannedTags = new Set();
+  Object.keys(tabCounts).forEach(k => tabCounts[k] = 0);
+  lastSavedRow = null;
+  updateTabCounts();
+  updateLog();
+  document.getElementById('scan-counter').textContent = '0';
+  setStatus('Session cleared', 'ready');
+}
+
+function updateLog() {
+  const total = sessionLog.length;
+  document.getElementById('scan-counter').textContent = total;
+  const logSection = document.getElementById('log-section');
+  logSection.style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('log-count').textContent = total + ' scan' + (total !== 1 ? 's' : '');
+  document.getElementById('log-list').innerHTML = sessionLog.slice(0, 30).map(r => `
+    <div class="log-item">
+      <span class="log-tag">${r.tag}</span>
+      <span class="log-meta">${r.sheetName}<br>${r.time}</span>
+    </div>
+  `).join('');
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status ' + (type || 'ready');
+}
+
+checkToken();
+</script>
+</body>
+</html>
